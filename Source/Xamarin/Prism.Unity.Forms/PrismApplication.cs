@@ -1,4 +1,5 @@
 ﻿using Microsoft.Practices.Unity;
+using Prism.AppModel;
 using Prism.Common;
 using Prism.Events;
 using Prism.Logging;
@@ -29,12 +30,9 @@ namespace Prism.Unity
                 var page = view as Page;
                 if (page != null)
                 {
-                    var navService = CreateNavigationService();
-                    ((IPageAware)navService).Page = page;
-
                     overrides = new ParameterOverrides
                     {
-                        { "navigationService", navService }
+                        { "navigationService", CreateNavigationService(page) }
                     };
                 }
 
@@ -65,6 +63,7 @@ namespace Prism.Unity
             Container.RegisterInstance<IModuleCatalog>(ModuleCatalog);
 
             Container.RegisterType<IApplicationProvider, ApplicationProvider>(new ContainerControlledLifetimeManager());
+            Container.RegisterType<IApplicationStore, ApplicationStore>(new ContainerControlledLifetimeManager());
             Container.RegisterType<INavigationService, UnityPageNavigationService>(_navigationServiceName);
             Container.RegisterType<IModuleManager, ModuleManager>(new ContainerControlledLifetimeManager());
             Container.RegisterType<IModuleInitializer, UnityModuleInitializer>(new ContainerControlledLifetimeManager());

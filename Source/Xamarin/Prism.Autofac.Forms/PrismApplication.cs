@@ -13,6 +13,7 @@ using Autofac.Features.ResolveAnything;
 using Prism.Autofac.Forms.Modularity;
 using Prism.Autofac.Navigation;
 using Prism.Autofac.Forms;
+using Prism.AppModel;
 
 namespace Prism.Autofac
 {
@@ -54,10 +55,7 @@ namespace Prism.Autofac
                 var page = view as Page;
                 if (page != null)
                 {
-                    var navService = CreateNavigationService();
-                    ((IPageAware)navService).Page = page;
-
-                    parameter = new NamedParameter("navigationService", navService);
+                    parameter = new NamedParameter("navigationService", CreateNavigationService(page));
                 }
 
                 return Container.Resolve(type, parameter);
@@ -107,6 +105,7 @@ namespace Prism.Autofac
             builder.RegisterInstance(ModuleCatalog).As<IModuleCatalog>().SingleInstance();
 
             builder.Register(ctx => new ApplicationProvider()).As<IApplicationProvider>().SingleInstance();
+            builder.Register(ctx => new ApplicationStore()).As<IApplicationStore>().SingleInstance();
             builder.Register(ctx => new AutofacPageNavigationService(Container, Container.Resolve<IApplicationProvider>(), Container.Resolve<ILoggerFacade>())).Named<INavigationService>(_navigationServiceName);
             builder.Register(ctx => new ModuleManager(Container.Resolve<IModuleInitializer>(), Container.Resolve<IModuleCatalog>())).As<IModuleManager>().SingleInstance();
             builder.Register(ctx => new AutofacModuleInitializer(Container)).As<IModuleInitializer>().SingleInstance();
@@ -127,7 +126,6 @@ namespace Prism.Autofac
 
             // Make sure any not specifically registered concrete type can resolve.
             containerUpdater.RegisterSource(new AnyConcreteTypeNotAlreadyRegisteredSource());
-
             containerUpdater.Update(Container);
         }
     }

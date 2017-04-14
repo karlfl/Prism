@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
 using DryIoc;
+using Prism.AppModel;
 using Prism.Common;
 using Prism.DryIoc.Extensions;
 using Prism.DryIoc.Modularity;
@@ -76,6 +77,7 @@ namespace Prism.DryIoc
             Container.RegisterInstance(Container);
             Container.Register<INavigationService, DryIocPageNavigationService>(serviceKey: _navigationServiceKey);
             Container.Register<IApplicationProvider, ApplicationProvider>(Reuse.Singleton);
+            Container.Register<IApplicationStore, ApplicationStore>(Reuse.Singleton);
             Container.Register<IModuleManager, ModuleManager>(Reuse.Singleton);
             Container.Register<IModuleInitializer, DryIocModuleInitializer>(Reuse.Singleton);
             Container.Register<IEventAggregator, EventAggregator>(Reuse.Singleton);
@@ -105,47 +107,20 @@ namespace Prism.DryIoc
             return Container.Resolve<INavigationService>(_navigationServiceKey);
         }
 
-        /// <summary>
-        /// Create instance of <see cref="INavigationService"/> and set the <see cref="IPageAware.Page"/> property to <paramref name="page"/>
-        /// </summary>
-        /// <param name="page">Active page</param>
-        /// <returns>Instance of <see cref="INavigationService"/> with <see cref="IPageAware.Page"/> set</returns>
-        protected INavigationService CreateNavigationService(Page page)
-        {
-            var navigationService = CreateNavigationService();
-            ((IPageAware)navigationService).Page = page;
-            return navigationService;
-        }
-
         protected override void ConfigureViewModelLocator()
         {
             ViewModelLocationProvider.SetDefaultViewModelFactory((view, type) =>
             {
                 var page = view as Page;
-                if (page != null)
+                if(page != null)
                 {
-                    return PageViewModelFactory(page, type);
+                    var navService = CreateNavigationService(page);
+                    return Container.WithDependencies(
+                    Parameters.Of.Type(_ => navService))
+                    .Resolve(type);
                 }
                 return Container.Resolve(type);
             });
-        }
-
-        /// <summary>
-        /// Resolve the view model of <paramref name="type"/> associated with <paramref name="page"/>
-        /// </summary>
-        /// <remarks>
-        /// The method will set the <see cref="IPageAware.Page" /> property on the <see cref="INavigationService"/>  
-        /// instance that will be injected into the view model.
-        /// </remarks>
-        /// <param name="page">The <see cref="Page"/> associated with the view model</param>
-        /// <param name="type">View model type to resolve</param>
-        /// <returns>View model instance of type <paramref name="type"/></returns>
-        protected virtual object PageViewModelFactory(Page page, Type type)
-        {
-            var navigationService = CreateNavigationService(page);
-            // Resolve type using the instance navigationService
-            var resolver = Container.Resolve<Func<INavigationService, object>>(type);
-            return resolver(navigationService);
         }
     }
 }
